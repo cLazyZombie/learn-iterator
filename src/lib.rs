@@ -11,6 +11,40 @@ pub trait Iterator {
     {
         Filter::new(self, predicator)
     }
+
+    fn find<P>(&mut self, predicator: P) -> Option<Self::Item>
+    where
+        Self: Sized,
+        P: Fn(&Self::Item) -> bool,
+    {
+        while let Some(n) = self.next() {
+            if predicator(&n) {
+                return Some(n)
+            } 
+        }
+        
+        None
+    }
+
+    fn map<P, B>(self, predicator: P) -> MapIter<Self, P>
+    where
+        Self: Sized,
+        P: Fn(Self::Item) -> B,
+    {
+        MapIter::new(self, predicator)
+    }
+
+    fn fold<F, B>(mut self, init: B, f: F) -> B 
+    where
+        Self: Sized,
+        F: Fn(B, Self::Item) -> B,
+    {
+        let mut accum = init;
+        while let Some(x) = self.next() {
+            accum = f(accum, x);
+        }
+        accum
+    }
 }
 
 pub struct Vec<T> {
@@ -137,6 +171,33 @@ where
     }
 }
 
+pub struct MapIter<I, P>
+{
+    iter: I,
+    predicator: P,
+}
+
+impl <I, P> MapIter<I, P> {
+    pub fn new(iter: I, predicator: P) -> Self {
+        MapIter {
+            iter,
+            predicator,
+        }
+    }
+}
+
+impl<I, P, B> Iterator for MapIter<I, P>
+where 
+    I : Iterator,
+    P : Fn(<I as Iterator>::Item) -> B
+{
+    type Item = B;
+
+    fn next(&mut self) -> Option<B> {
+        self.iter.next().map(&mut self.predicator)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -200,5 +261,45 @@ mod tests {
         assert_eq!(it.next(), Some(&1));
         assert_eq!(it.next(), Some(&3));
         assert_eq!(it.next(), None);
+    }
+
+    #[test]
+    fn find() {
+        let mut v = Vec::new();
+        v.add(1);
+        v.add(2);
+
+        assert_eq!(v.iter().find(|&v| {*v == 1}), Some(&1));
+        assert_eq!(v.iter().find(|&v| {*v == 3}), None);
+    }
+
+    #[test]
+    fn map() {
+        let mut v = Vec::new();
+        v.add(1);
+        v.add(2);
+
+        let mut it = v.iter().map(|v| {v * 2});
+        assert_eq!(it.next(), Some(2));
+        assert_eq!(it.next(), Some(4));
+        assert_eq!(it.next(), None);
+    }
+
+    #[test]
+    fn fold() {
+        let mut v = Vec::new();
+        v.add(1);
+        v.add(2);
+        v.add(3);
+
+        let sum = v.iter().fold(0, |i, v| { i + v});
+        assert_eq!(6, sum);
+    }
+
+    #[test]
+    fn iter() {
+        let v = std::vec![1,2];
+        let it = v.iter().map(|v| {v * 2});
+        let _f = v.iter().find(|&v| {*v == 1});
     }
 }
