@@ -102,7 +102,7 @@ pub struct VecMutIterator<'a, T> {
 impl<'a, T> VecMutIterator<'a, T> {
     fn new(v : &'a mut Vec<T>) -> Self {
         v.vec.as_mut_ptr();
-        let ptr =  v.vec.as_mut_ptr();
+        let ptr =  v.vec.as_ptr();
         let end = unsafe { ptr.add(v.vec.len()) };
 
         println!("ptr: {:p}", ptr);
@@ -296,10 +296,10 @@ mod tests {
         assert_eq!(6, sum);
     }
 
-    #[test]
-    fn iter() {
-        let v = std::vec![1,2];
-        let it = v.iter().map(|v| {v * 2});
-        let _f = v.iter().find(|&v| {*v == 1});
-    }
+    // #[test]
+    // fn iter() {
+    //     let v = std::vec![1,2];
+    //     let it = v.iter().map(|v| {v * 2});
+    //     let _f = v.iter().find(|&v| {*v == 1});
+    // }
 }
